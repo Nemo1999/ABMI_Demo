@@ -111,6 +111,53 @@ This section outlines the step-by-step flow of interactions between the User, th
 25. **Display App** (JavaScript) receives the `animal_response` via its WebSocket and appends it to its chat log.
 26. **Mobile AR App** (JavaScript) receives the `animal_response` via its WebSocket and appends it to its mobile chat log.
 
+### Visual Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant DisplayApp as Display App
+    participant MobileApp as Mobile AR App
+    participant Backend as Backend Server
+
+    User->>DisplayApp: 1. Opens URL (http://<EC2_IP>:8000/)
+    DisplayApp->>DisplayApp: 2. Loads display.html, CSS, JS
+    DisplayApp->>DisplayApp: 3. Generates unique session_id
+    DisplayApp->>DisplayApp: 4. Constructs mobile_url (http://<EC2_IP>:8000/mobile?session_id=<ID>)
+    DisplayApp->>DisplayApp: 5. Generates & displays QR code for mobile_url
+    DisplayApp->>Backend: 6. Initiates WebSocket connection (WSS /ws/<session_id>)
+    Backend->>Backend: 7. Accepts WS connection, registers DisplayApp in session_id room
+
+    User->>MobileApp: 8. Scans QR code
+    MobileApp->>MobileApp: 9. Loads mobile.html, CSS, JS, A-Frame, AR.js
+    MobileApp->>MobileApp: 10. Extracts session_id from URL
+    MobileApp->>Backend: 11. Initiates WebSocket connection (WSS /ws/<session_id>)
+    Backend->>Backend: 12. Accepts WS connection, registers MobileApp in session_id room
+
+    User->>MobileApp: 13. Points camera at animal GIF
+    MobileApp->>MobileApp: 14. AR.js detects animal marker (e.g., patt.elephant)
+    MobileApp->>MobileApp: 15. Displays interactive buttons in AR overlay
+
+    User->>MobileApp: 16. Taps button (e.g., "Hello")
+    MobileApp->>Backend: 17. Sends user_message via WS
+    Note over MobileApp,Backend: {"type": "user_message", "animal": "elephant", "content": "Hello", "content_key": "hello"}
+
+    Backend->>Backend: 18. Receives user_message
+    Backend->>DisplayApp: 19. Broadcasts user_message to DisplayApp
+    Backend->>MobileApp: 19. Broadcasts user_message to MobileApp
+    DisplayApp->>DisplayApp: 20. Appends user_message to chat log
+    MobileApp->>MobileApp: 21. Appends user_message to mobile chat log
+
+    Backend->>Backend: 22. Processes user_message, looks up animal_response
+    Backend->>Backend: 23. Generates animal_response
+    Backend->>DisplayApp: 24. Broadcasts animal_response to DisplayApp
+    Backend->>MobileApp: 24. Broadcasts animal_response to MobileApp
+    Note over MobileApp,Backend: {"type": "animal_response", "animal": "elephant", "content": "The elephant trumpets!"}
+
+    DisplayApp->>DisplayApp: 25. Appends animal_response to chat log
+    MobileApp->>MobileApp: 26. Appends animal_response to mobile chat log
+```
+
 ## Running the Project
 
 Follow these steps to get the project up and running:
