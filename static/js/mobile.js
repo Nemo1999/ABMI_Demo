@@ -68,6 +68,36 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
     connectWebSocket();
 
+    // Handle text input
+    const textInput = document.getElementById('mobile-text-input');
+    if (textInput) {
+        textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && textInput.value.trim()) {
+                if (!currentAnimal) {
+                    console.warn("Mobile Messaging Test App: No animal selected, cannot send message.");
+                    appendMessage({ type: 'system_notification', content: 'Please select an animal first.' });
+                    return;
+                }
+                if (socket.readyState !== WebSocket.OPEN) {
+                    console.warn("Mobile Messaging Test App: WebSocket not open, cannot send message.");
+                    appendMessage({ type: 'system_notification', content: 'Connection lost. Please wait...' });
+                    return;
+                }
+
+                const message = {
+                    type: 'user_message',
+                    animal: currentAnimal,
+                    content: textInput.value.trim(),
+                    content_key: 'text_input' // Custom key for text input
+                };
+                console.log(`Mobile Messaging Test App: Sending message: ${JSON.stringify(message)}`);
+                socket.send(JSON.stringify(message));
+                appendMessage(message); // Display user's own message immediately
+                textInput.value = ''; // Clear the input
+            }
+        });
+    }
+
     // Messaging UI Interaction
     messageButtons.forEach(button => {
         button.addEventListener('click', () => {

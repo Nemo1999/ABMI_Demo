@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import json
 import logging
+from ai import generate_ai_response
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -92,8 +93,21 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             if message["type"] == "user_message":
                 animal = message.get("animal")
                 content_key = message.get("content_key") # e.g., "hello", "food"
+                content = message.get("content", "")
                 logging.info(f"Processing user_message for animal '{animal}' with key '{content_key}'.")
-                if animal in animal_responses and content_key in animal_responses[animal]:
+                
+                # Handle text input from the user - use AI to generate response
+                if content_key == "text_input":
+                    # Generate AI response using Gemini API
+                    ai_response = generate_ai_response(content, animal)
+                    response_message = {
+                        "type": "animal_response",
+                        "animal": animal,
+                        "content": ai_response
+                    }
+                    await asyncio.sleep(0.5) # Dramatic pause
+                    await manager.broadcast(json.dumps(response_message), session_id)
+                elif animal in animal_responses and content_key in animal_responses[animal]:
                     response_text = animal_responses[animal][content_key]
                     response_message = {
                         "type": "animal_response",
