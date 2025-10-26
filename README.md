@@ -19,7 +19,7 @@ The entire system is designed to run on a single server (e.g., an Amazon EC2 ins
     *   **Real-time Communication:** `websockets`
 *   **Display Frontend:** Plain **HTML5**, **CSS3**, and **JavaScript**.
     *   **QR Code Generation:** A client-side JavaScript library.
-*   **Mobile AR Frontend:** **AR.js** built on **A-Frame** and **three.js**.
+*   **Mobile AR Frontend:** **ARToolKit.js** for marker detection, with standard **HTML5**, **CSS3**, and **JavaScript** for the messaging UI.
 *   **Deployment:** A single server instance where the FastAPI application runs and serves all content.
 
 ### API and Communication Flow
@@ -77,14 +77,14 @@ This section outlines the step-by-step flow of interactions between the User, th
 6.  **Display App** (JavaScript) initiates a WebSocket connection to the **Backend Server**: `WSS <EC2_IP>:8000/ws/<session_id>`.
 7.  **Backend Server** accepts the WebSocket connection from the **Display App** and registers it in the `session_id` room.
 8.  **User** scans the QR code with their smartphone.
-9.  **Mobile AR App** loads `mobile.html` from the `mobile_url` and associated static assets (CSS, JS, A-Frame, AR.js).
+9.  **Mobile AR App** loads `mobile.html` from the `mobile_url` and associated static assets (CSS, JS, ARToolKit.js).
 10. **Mobile AR App** (JavaScript) extracts the `session_id` from the URL query parameters.
 11. **Mobile AR App** (JavaScript) initiates a WebSocket connection to the **Backend Server**: `WSS <EC2_IP>:8000/ws/<session_id>`.
 12. **Backend Server** accepts the WebSocket connection from the **Mobile AR App** and registers it in the `session_id` room.
 13. **User** points their smartphone camera at an animal GIF (e.g., elephant) displayed on the large screen.
-14. **Mobile AR App** (AR.js) detects the corresponding animal marker (e.g., `patt.elephant`).
-15. **Mobile AR App** (AR.js) renders interactive buttons (e.g., "Hello", "Food?", "Fun Fact") as an AR overlay on the smartphone screen.
-16. **User** taps an interactive button (e.g., "Hello") on their smartphone.
+14. **Mobile AR App** (ARToolKit.js) detects the corresponding animal marker (e.g., `patt.elephant`).
+15. **Mobile AR App** (JavaScript) shows the standard HTML messaging UI, hiding the AR camera view (or making it less prominent), and updates the animal name.
+16. **User** taps an interactive button (e.g., "Hello") on the messaging UI.
 17. **Mobile AR App** (JavaScript) sends a `user_message` to the **Backend Server** via its WebSocket connection:
     ```json
     {
@@ -129,14 +129,14 @@ sequenceDiagram
     Backend->>Backend: 7. Accepts WS connection, registers DisplayApp in session_id room
 
     User->>MobileApp: 8. Scans QR code
-    MobileApp->>MobileApp: 9. Loads mobile.html, CSS, JS, A-Frame, AR.js
+    MobileApp->>MobileApp: 9. Loads mobile.html, CSS, JS, ARToolKit.js
     MobileApp->>MobileApp: 10. Extracts session_id from URL
     MobileApp->>Backend: 11. Initiates WebSocket connection (WSS /ws/<session_id>)
     Backend->>Backend: 12. Accepts WS connection, registers MobileApp in session_id room
 
     User->>MobileApp: 13. Points camera at animal GIF
-    MobileApp->>MobileApp: 14. AR.js detects animal marker (e.g., patt.elephant)
-    MobileApp->>MobileApp: 15. Displays interactive buttons in AR overlay
+    MobileApp->>MobileApp: 14. ARToolKit.js detects animal marker (e.g., patt.elephant)
+    MobileApp->>MobileApp: 15. Shows HTML messaging UI, updates animal name
 
     User->>MobileApp: 16. Taps button (e.g., "Hello")
     MobileApp->>Backend: 17. Sends user_message via WS
@@ -183,16 +183,22 @@ Follow these steps to get the project up and running:
     ```
     (Note: `requirements.txt` was generated after initial dependency installation.)
 
-### 3. Generate AR.js Marker Files
+### 3. Generate ARToolKit.js Marker Files and Camera Parameters
 
-For the Augmented Reality functionality to work, you need to generate marker pattern files (`.patt`) from the animal GIF images. These files tell AR.js what to look for.
+For the Augmented Reality functionality to work, you need to generate marker pattern files (`.patt`) from the animal GIF images and provide a camera calibration file (`camera_para.dat`).
 
-1.  **Go to the AR.js Marker Training Tool:** [https://jeromeetienne.github.io/AR.js/three.js/examples/marker-training/examples/generator.html](https://jeromeetienne.github.io/AR.js/three.js/examples/marker-training/examples/generator.html)
-2.  **Prepare Images:** Take a clear screenshot of the first frame of `elephant-elefante.gif` and `lizard-butiki.gif`.
-3.  **Upload and Generate:** Upload each screenshot to the generator tool one by one. Download the generated `.patt` file for each image.
-4.  **Rename Files:** Rename the downloaded files to `patt.elephant` and `patt.lizard` respectively.
-5.  **Place Files:** Move these two `.patt` files into the project's `static/assets/` directory:
-    `/home/nemo/ABMI_Demo/static/assets/`
+1.  **Generate Marker Files:**
+    *   **Go to an ARToolKit.js Marker Training Tool:** You can use online tools or local utilities to generate `.patt` files. A common online tool for AR.js (which uses similar marker formats) is [https://jeromeetienne.github.io/AR.js/three.js/examples/marker-training/examples/generator.html](https://jeromeetienne.github.io/AR.js/three.js/examples/marker-training/examples/generator.html).
+    *   **Prepare Images:** Take a clear screenshot of the first frame of `elephant-elefante.gif` and `lizard-butiki.gif`.
+    *   **Upload and Generate:** Upload each screenshot to the generator tool one by one. Download the generated `.patt` file for each image.
+    *   **Rename Files:** Rename the downloaded files to `patt.elephant` and `patt.lizard` respectively.
+    *   **Place Files:** Move these two `.patt` files into the project's `static/assets/` directory:
+        `/home/nemo/ABMI_Demo/static/assets/`
+
+2.  **Provide Camera Calibration File (`camera_para.dat`):**
+    *   ARToolKit.js requires a `camera_para.dat` file for camera calibration. For a general demo, you can often use a generic one. You might find one in ARToolKit.js examples or online resources.
+    *   **Place File:** Place your `camera_para.dat` file into the project's `static/assets/` directory:
+        `/home/nemo/ABMI_Demo/static/assets/`
 
 ### 4. Run the Application
 

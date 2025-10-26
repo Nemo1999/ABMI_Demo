@@ -4,11 +4,11 @@ body {
     background-color: #f4f4f9;
     color: #333;
     margin: 0;
-    padding: 20px;
+    padding: 0;
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    height: 100vh;
+    min-height: 100vh; /* Use min-height for display app */
 }
 
 .container {
@@ -18,6 +18,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     padding: 20px;
+    margin-top: 20px; /* Add some margin for display app */
 }
 
 header {
@@ -105,45 +106,110 @@ h1 {
     font-size: 0.9em;
 }
 
-/* Mobile AR Overlay */
-#mobile-ui-overlay {
+/* Mobile AR App Specific Styles */
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Prevent scrolling on mobile AR page */
+}
+
+#ar-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-color: black; /* Fallback background */
+}
+
+#camera-feed, #ar-canvas {
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
-    pointer-events: none; /* Let touches pass through to the AR scene */
-    display: flex;
-    flex-direction: column-reverse;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensure video covers the area */
 }
 
-#mobile-chat-log {
-    height: 30%;
-    background-color: rgba(0, 0, 0, 0.5);
+#ar-canvas {
+    z-index: 1; /* Canvas on top of video */
+}
+
+.messaging-ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2; /* Messaging UI on top of AR */
+    background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent overlay */
     color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Push chat to top, buttons to bottom */
+    padding: 15px;
+    box-sizing: border-box;
+}
+
+#animal-name {
+    text-align: center;
+    font-size: 1.8em;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.mobile-chat-log {
+    flex-grow: 1; /* Take up available space */
     overflow-y: auto;
     padding: 10px;
+    background-color: rgba(255, 255, 255, 0.1); /* Slightly visible background */
+    border-radius: 8px;
+    margin-bottom: 15px;
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-/* Chat Messages (Mobile) */
+.message-options {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+    flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+}
+
+.msg-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    flex: 1 1 auto; /* Allow buttons to grow and shrink */
+    min-width: 100px; /* Minimum width for buttons */
+}
+
+.msg-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Chat Messages (Mobile) - Reusing and adapting existing styles */
 .chat-message-mobile {
-    padding: 5px 10px;
-    border-radius: 10px;
-    max-width: 90%;
-    font-size: 0.9em;
+    padding: 8px 12px;
+    border-radius: 12px;
+    max-width: 85%;
+    font-size: 0.95em;
 }
 
 .chat-message-mobile.user_message {
-    background-color: #007bff;
+    background-color: #28a745; /* Green for user messages */
+    color: white;
     align-self: flex-end;
+    text-align: right;
 }
 
 .chat-message-mobile.animal_response {
-    background-color: #555;
+    background-color: #6c757d; /* Grey for animal responses */
+    color: white;
     align-self: flex-start;
 }
 
@@ -151,5 +217,6 @@ h1 {
     font-style: italic;
     color: #ccc;
     align-self: center;
-    font-size: 0.8em;
+    font-size: 0.85em;
+    text-align: center;
 }
