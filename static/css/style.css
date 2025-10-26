@@ -106,31 +106,11 @@ h1 {
     font-size: 0.9em;
 }
 
-/* Mobile AR App Specific Styles */
+/* Mobile Messaging Test App Specific Styles */
 html, body {
     height: 100%;
     width: 100%;
     overflow: hidden; /* Prevent scrolling on mobile AR page */
-}
-
-#ar-container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    background-color: black; /* Fallback background */
-}
-
-#camera-feed, #ar-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Ensure video covers the area */
-}
-
-#ar-canvas {
-    z-index: 1; /* Canvas on top of video */
 }
 
 .messaging-ui-overlay {
@@ -139,8 +119,8 @@ html, body {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 2; /* Messaging UI on top of AR */
-    background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent overlay */
+    z-index: 2; /* Messaging UI on top */
+    background-color: #282c34; /* Dark background for messaging app */
     color: white;
     display: flex;
     flex-direction: column;
@@ -149,11 +129,38 @@ html, body {
     box-sizing: border-box;
 }
 
+.animal-selector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.animal-selector label {
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.animal-selector select {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid #61dafb;
+    background-color: #3a3f47;
+    color: white;
+    font-size: 1em;
+    cursor: pointer;
+}
+
 #animal-name {
     text-align: center;
     font-size: 1.8em;
     font-weight: bold;
     margin-bottom: 10px;
+    color: #61dafb; /* Highlight selected animal */
 }
 
 .mobile-chat-log {

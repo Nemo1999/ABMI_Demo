@@ -3,27 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AMID - Mobile AR</title>
+    <title>AMID - Mobile Messaging Test</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <!-- ARToolKit.js scripts -->
-    <script src="https://raw.githack.com/artoolkit/artoolkit5/master/js/artoolkit.min.js"></script>
-    <script src="https://raw.githack.com/artoolkit/artoolkit5/master/js/artoolkit.api.js"></script>
 </head>
 <body style="margin: 0; overflow: hidden;">
 
-    <div id="ar-container" style="position: relative; width: 100vw; height: 100vh;">
-        <video id="camera-feed" autoplay="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"></video>
-        <canvas id="ar-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
-
-        <!-- Messaging UI - Initially hidden -->
-        <div id="messaging-ui" class="messaging-ui-overlay" style="display: none;">
-            <div id="animal-name"></div>
-            <div id="mobile-chat-log" class="mobile-chat-log"></div>
-            <div class="message-options">
-                <button class="msg-btn" data-key="hello">Hello</button>
-                <button class="msg-btn" data-key="food">Food?</button>
-                <button class="msg-btn" data-key="fun_fact">Fun Fact</button>
-            </div>
+    <div id="messaging-ui" class="messaging-ui-overlay" style="display: flex;"> <!-- Display flex by default -->
+        <div class="animal-selector">
+            <label for="select-animal">Talk to:</label>
+            <select id="select-animal">
+                <option value="elephant">Elephant</option>
+                <option value="lizard">Lizard</option>
+            </select>
+        </div>
+        <div id="animal-name"></div>
+        <div id="mobile-chat-log" class="mobile-chat-log"></div>
+        <div class="message-options">
+            <button class="msg-btn" data-key="hello">Hello</button>
+            <button class="msg-btn" data-key="food">Food?</button>
+            <button class="msg-btn" data-key="fun_fact">Fun Fact</button>
         </div>
     </div>
 

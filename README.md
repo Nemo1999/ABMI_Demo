@@ -19,7 +19,7 @@ The entire system is designed to run on a single server (e.g., an Amazon EC2 ins
     *   **Real-time Communication:** `websockets`
 *   **Display Frontend:** Plain **HTML5**, **CSS3**, and **JavaScript**.
     *   **QR Code Generation:** A client-side JavaScript library.
-*   **Mobile AR Frontend:** **ARToolKit.js** for marker detection, with standard **HTML5**, **CSS3**, and **JavaScript** for the messaging UI.
+*   **Mobile AR Frontend:** For this temporary test, it's a pure messaging app using standard **HTML5**, **CSS3**, and **JavaScript**.
 *   **Deployment:** A single server instance where the FastAPI application runs and serves all content.
 
 ### API and Communication Flow
@@ -65,9 +65,9 @@ All messages sent over the WebSocket connection use a simple JSON structure:
 *   `animal`: The animal being interacted with.
 *   `content`: The text of the message.
 
-### Detailed Interaction Sequence
+### Detailed Interaction Sequence (Temporary Messaging App Version)
 
-This section outlines the step-by-step flow of interactions between the User, the Display App, the Mobile AR App, and the Backend Server.
+This section outlines the step-by-step flow of interactions for the temporary messaging app, where AR functionality is disabled.
 
 1.  **User** opens **Display App** URL (`http://<EC2_IP>:8000/`) in a large screen browser.
 2.  **Display App** loads `display.html` and associated static assets (CSS, JS).
@@ -77,15 +77,15 @@ This section outlines the step-by-step flow of interactions between the User, th
 6.  **Display App** (JavaScript) initiates a WebSocket connection to the **Backend Server**: `WSS <EC2_IP>:8000/ws/<session_id>`.
 7.  **Backend Server** accepts the WebSocket connection from the **Display App** and registers it in the `session_id` room.
 8.  **User** scans the QR code with their smartphone.
-9.  **Mobile AR App** loads `mobile.html` from the `mobile_url` and associated static assets (CSS, JS, ARToolKit.js).
-10. **Mobile AR App** (JavaScript) extracts the `session_id` from the URL query parameters.
-11. **Mobile AR App** (JavaScript) initiates a WebSocket connection to the **Backend Server**: `WSS <EC2_IP>:8000/ws/<session_id>`.
-12. **Backend Server** accepts the WebSocket connection from the **Mobile AR App** and registers it in the `session_id` room.
-13. **User** points their smartphone camera at an animal GIF (e.g., elephant) displayed on the large screen.
-14. **Mobile AR App** (ARToolKit.js) detects the corresponding animal marker (e.g., `patt.elephant`).
-15. **Mobile AR App** (JavaScript) shows the standard HTML messaging UI, hiding the AR camera view (or making it less prominent), and updates the animal name.
+9.  **Mobile App** loads `mobile.html` from the `mobile_url` and associated static assets (CSS, JS).
+10. **Mobile App** (JavaScript) extracts the `session_id` from the URL query parameters.
+11. **Mobile App** (JavaScript) initiates a WebSocket connection to the **Backend Server**: `WSS <EC2_IP>:8000/ws/<session_id>`.
+12. **Backend Server** accepts the WebSocket connection from the **Mobile App** and registers it in the `session_id` room.
+13. **Mobile App** (JavaScript) immediately displays the messaging UI with an animal selection dropdown.
+14. **User** selects an animal (e.g., Elephant) from the dropdown.
+15. **Mobile App** (JavaScript) updates the displayed animal name and clears the chat log.
 16. **User** taps an interactive button (e.g., "Hello") on the messaging UI.
-17. **Mobile AR App** (JavaScript) sends a `user_message` to the **Backend Server** via its WebSocket connection:
+17. **Mobile App** (JavaScript) sends a `user_message` to the **Backend Server** via its WebSocket connection:
     ```json
     {
       "type": "user_message",
@@ -95,9 +95,9 @@ This section outlines the step-by-step flow of interactions between the User, th
     }
     ```
 18. **Backend Server** receives the `user_message`.
-19. **Backend Server** broadcasts the received `user_message` to all active WebSocket connections in the `session_id` room (i.e., both the **Display App** and the **Mobile AR App**).
+19. **Backend Server** broadcasts the received `user_message` to all active WebSocket connections in the `session_id` room (i.e., both the **Display App** and the **Mobile App**).
 20. **Display App** (JavaScript) receives the `user_message` via its WebSocket and appends it to its chat log.
-21. **Mobile AR App** (JavaScript) receives the `user_message` via its WebSocket and appends it to its mobile chat log.
+21. **Mobile App** (JavaScript) receives the `user_message` via its WebSocket and appends it to its mobile chat log.
 22. **Backend Server** processes the `user_message`, looking up a pre-defined `animal_response` based on the `animal` and `content_key`.
 23. **Backend Server** generates the `animal_response` (e.g., "The elephant raises its trunk and lets out a friendly trumpet!").
 24. **Backend Server** broadcasts the `animal_response` to all active WebSocket connections in the `session_id` room:
@@ -109,15 +109,15 @@ This section outlines the step-by-step flow of interactions between the User, th
     }
     ```
 25. **Display App** (JavaScript) receives the `animal_response` via its WebSocket and appends it to its chat log.
-26. **Mobile AR App** (JavaScript) receives the `animal_response` via its WebSocket and appends it to its mobile chat log.
+26. **Mobile App** (JavaScript) receives the `animal_response` via its WebSocket and appends it to its mobile chat log.
 
-### Visual Sequence Diagram
+### Visual Sequence Diagram (Temporary Messaging App Version)
 
 ```mermaid
 sequenceDiagram
     participant User
     participant DisplayApp as Display App
-    participant MobileApp as Mobile AR App
+    participant MobileApp as Mobile Messaging App
     participant Backend as Backend Server
 
     User->>DisplayApp: 1. Opens URL (http://<EC2_IP>:8000/)
@@ -129,14 +129,14 @@ sequenceDiagram
     Backend->>Backend: 7. Accepts WS connection, registers DisplayApp in session_id room
 
     User->>MobileApp: 8. Scans QR code
-    MobileApp->>MobileApp: 9. Loads mobile.html, CSS, JS, ARToolKit.js
+    MobileApp->>MobileApp: 9. Loads mobile.html, CSS, JS
     MobileApp->>MobileApp: 10. Extracts session_id from URL
     MobileApp->>Backend: 11. Initiates WebSocket connection (WSS /ws/<session_id>)
     Backend->>Backend: 12. Accepts WS connection, registers MobileApp in session_id room
 
-    User->>MobileApp: 13. Points camera at animal GIF
-    MobileApp->>MobileApp: 14. ARToolKit.js detects animal marker (e.g., patt.elephant)
-    MobileApp->>MobileApp: 15. Shows HTML messaging UI, updates animal name
+    MobileApp->>MobileApp: 13. Displays messaging UI with animal selection
+    User->>MobileApp: 14. Selects animal (e.g., Elephant)
+    MobileApp->>MobileApp: 15. Updates animal name, clears chat
 
     User->>MobileApp: 16. Taps button (e.g., "Hello")
     MobileApp->>Backend: 17. Sends user_message via WS
@@ -183,9 +183,11 @@ Follow these steps to get the project up and running:
     ```
     (Note: `requirements.txt` was generated after initial dependency installation.)
 
-### 3. Generate ARToolKit.js Marker Files and Camera Parameters
+### 3. AR Setup (Not needed for this temporary messaging app test)
 
-For the Augmented Reality functionality to work, you need to generate marker pattern files (`.patt`) from the animal GIF images and provide a camera calibration file (`camera_para.dat`).
+For the full AR functionality, you would typically generate marker pattern files (`.patt`) from the animal GIF images and provide a camera calibration file (`camera_para.dat`). **However, for this temporary messaging app test, these steps are not required as AR functionality is disabled.**
+
+If you were to enable AR, you would:
 
 1.  **Generate Marker Files:**
     *   **Go to an ARToolKit.js Marker Training Tool:** You can use online tools or local utilities to generate `.patt` files. A common online tool for AR.js (which uses similar marker formats) is [https://jeromeetienne.github.io/AR.js/three.js/examples/marker-training/examples/generator.html](https://jeromeetienne.github.io/AR.js/three.js/examples/marker-training/examples/generator.html).
