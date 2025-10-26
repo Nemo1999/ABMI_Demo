@@ -1,9 +1,14 @@
+# Certificate is saved at: /etc/letsencrypt/live/43-213-46-114.sslip.io/fullchain.pem
+# Key is saved at:         /etc/letsencrypt/live/43-213-46-114.sslip.io/privkey.pem
+# 43-213-46-114.sslip.io 
+
 
 import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import json
+import logging
 
 app = FastAPI()
 
@@ -44,7 +49,7 @@ animal_responses = {
         "food": "This lizard loves to eat insects and small bugs.",
         "fun_fact": "Some lizards can detach their tails to escape from predators!"
     }
-}
+ }
 
 @app.get("/")
 async def get_display():
@@ -71,6 +76,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             if message["type"] == "user_message":
                 animal = message.get("animal")
                 content_key = message.get("content_key") # e.g., "hello", "food"
+                logging.info(f"message received for {animal}: {message}")
                 if animal in animal_responses and content_key in animal_responses[animal]:
                     response_text = animal_responses[animal][content_key]
                     response_message = {
@@ -78,7 +84,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                         "animal": animal,
                         "content": response_text
                     }
-                    await asyncio.sleep(1) # Dramatic pause
+                    await asyncio.sleep(0.5) # Dramatic pause
                     await manager.broadcast(json.dumps(response_message), session_id)
 
     except WebSocketDisconnect:
