@@ -17,9 +17,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 100%;
-    min-height: 100vh;
-    background: rgba(0, 0, 0, 0.4); /* Dark overlay for readability */
+    width: 60%;
+    min-height: 90vh;
+    background: rgba(0, 0, 0, 0.2); /* Dark overlay for readability */
     padding: 20px;
     box-sizing: border-box;
 }
@@ -41,10 +41,10 @@ header p {
 }
 
 #bird-container {
-    position: absolute;
-    top: 20%;
-    left: 10%;
-    width: 150px; /* Adjust size as needed */
+    position: relative;
+    top: 0%;
+    right: -10%;
+    width: 1000px; /* Adjust size as needed */
     z-index: 10;
 }
 
@@ -69,6 +69,20 @@ header p {
     padding: 20px;
     box-sizing: border-box;
 }
+
+#qrcode-container{
+    min-height: 10vh;
+}
+
+#qrcode {
+    padding: 10px;
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    width: 260px;
+    height:260px;
+}
+
 
 /* Hide scrollbar but allow scrolling */
 #chat-log::-webkit-scrollbar {

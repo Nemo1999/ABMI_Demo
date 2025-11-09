@@ -48,6 +48,22 @@ document.addEventListener('DOMContentLoaded', (event) => {
             appendMessage({ type: 'system', content: 'An error occurred with the connection.' });
         };
     }
+    // 4. Create the mobile URL and show QR code
+    const mobileUrl = `${window.location.protocol}//${window.location.host}/mobile`;
+    console.log(`Display App: Constructed mobile URL: ${mobileUrl}`);
+    console.log("Display App: Generating QR code...");
+    qrCodeContainer = document.getElementById("qrcode")
+    new QRCode(qrCodeContainer, {
+        text: mobileUrl,
+        width: 256,
+        height: 256,
+        colorDark : "#000000",
+        colorLight : "#ffffff00",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+    qrCodeContainer.title = '手機掃描 QR Code 進入藍鵲的夢境交流'; // Remove the default title from the library
+    console.log("Display App: QR code generated.");
+
 
     // 4. Render messages as speech bubbles
     function appendMessage(msg) {
