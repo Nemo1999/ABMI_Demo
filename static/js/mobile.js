@@ -1,118 +1,126 @@
 document.addEventListener('DOMContentLoaded', (event) => {
-    console.log("Mobile Messaging Test App: DOM Content Loaded.");
+    console.log("Mobile App: DOM Content Loaded.");
 
-    const mobileChatLog = document.getElementById('mobile-chat-log');
+    // UI Elements
+    const usernamePrompt = document.getElementById('username-prompt');
     const messagingUi = document.getElementById('messaging-ui');
-    const animalNameDisplay = document.getElementById('animal-name');
-    const messageButtons = document.querySelectorAll('.msg-btn');
-    const selectAnimalDropdown = document.getElementById('select-animal');
+    const joinChatBtn = document.getElementById('join-chat-btn');
+    const usernameInput = document.getElementById('username-input');
+    const mobileChatLog = document.getElementById('mobile-chat-log');
+    const sendBtn = document.getElementById('send-btn');
+    const messageInput = document.getElementById('message-input');
 
-    let currentAnimal = selectAnimalDropdown.value; // Initialize with default selected animal
+    let username = '';
     let socket = null;
 
-    // Set initial animal name display
-    animalNameDisplay.textContent = currentAnimal.charAt(0).toUpperCase() + currentAnimal.slice(1);
-
-    // Event listener for animal selection dropdown
-    selectAnimalDropdown.addEventListener('change', (e) => {
-        currentAnimal = e.target.value;
-        animalNameDisplay.textContent = currentAnimal.charAt(0).toUpperCase() + currentAnimal.slice(1);
-        mobileChatLog.innerHTML = ''; // Clear chat log for new animal
-        appendMessage({ type: 'system_notification', content: `You are now talking to the ${currentAnimal}!` });
-        console.log(`Mobile Messaging Test App: Switched to talk to: ${currentAnimal}`);
+    // 1. Handle Username Input
+    joinChatBtn.addEventListener('click', () => {
+        const name = usernameInput.value.trim();
+        if (name) {
+            username = name;
+            console.log(`Mobile App: User set name to: ${username}`);
+            usernamePrompt.style.display = 'none';
+            messagingUi.style.display = 'flex';
+            messageInput.focus();
+            connectWebSocket();
+        } else {
+            alert('Please enter a name.');
+        }
     });
 
-    // 1. Parse the session_id from the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id');
+    usernameInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+            joinChatBtn.click();
+        }
+    });
 
-    if (!sessionId) {
-        console.error("Mobile Messaging Test App: No session ID found. Please scan the QR code again.");
-        mobileChatLog.innerHTML = '<em>Error: No session ID found. Please scan the QR code again.</em>';
-        return;
+    // 2. Handle Sending Messages
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    function sendMessage() {
+        const messageText = messageInput.value.trim();
+        if (!messageText) return;
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            console.warn("Mobile App: WebSocket not open, cannot send message.");
+            appendMessage({ type: 'system', content: 'Connection lost. Please wait...' });
+            return;
+        }
+
+        const message = {
+            username: username,
+            message: messageText
+        };
+
+        console.log(`Mobile App: Sending message: ${JSON.stringify(message)}`);
+        socket.send(JSON.stringify(message));
+        messageInput.value = ''; // Clear input field
     }
-    console.log(`Mobile Messaging Test App: Session ID: ${sessionId}`);
 
-    // 2. Establish the WebSocket connection
+    // 3. Establish WebSocket Connection
     function connectWebSocket() {
-        console.log("Mobile Messaging Test App: Attempting to connect WebSocket...");
+        console.log("Mobile App: Attempting to connect WebSocket...");
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${window.location.host}/ws/${sessionId}`;
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
         socket = new WebSocket(wsUrl);
 
         socket.onopen = function(e) {
-            console.log("Mobile Messaging Test App: [WebSocket Open] Connection established.");
-            appendMessage({ type: 'system_notification', content: 'Connected! Select an animal to chat.' });
-            messagingUi.style.display = 'flex'; // Ensure UI is visible
+            console.log("Mobile App: [WebSocket Open] Connection established.");
+            appendMessage({ type: 'system', content: 'Connected to the chat!' });
         };
 
         socket.onmessage = function(event) {
-            console.log(`Mobile Messaging Test App: [WebSocket Message] Data received: ${event.data}`);
-            const message = JSON.parse(event.data);
-            // Only show animal responses on mobile to prevent echo of user's own message
-            if (message.type === 'animal_response') {
-                appendMessage(message);
+            console.log(`Mobile App: [WebSocket Message] Data received: ${event.data}`);
+            const serverMessage = JSON.parse(event.data);
+
+            if (serverMessage.type === 'history') {
+                mobileChatLog.innerHTML = ''; // Clear the log
+                appendMessage({ type: 'system', content: 'Chat history loaded.' });
+                serverMessage.data.forEach(msg => appendMessage(msg, true));
+            } else if (serverMessage.type === 'new_message') {
+                appendMessage(serverMessage, false);
             }
         };
 
         socket.onclose = function(event) {
-            console.warn(`Mobile Messaging Test App: [WebSocket Close] Connection closed: ${event.reason} (Code: ${event.code}).`);
-            appendMessage({ type: 'system_notification', content: 'Disconnected from server. Attempting to reconnect...' });
-            setTimeout(connectWebSocket, 3000); // Attempt to reconnect after 3 seconds
+            console.warn(`Mobile App: [WebSocket Close] Connection closed. Code: ${event.code}`);
+            appendMessage({ type: 'system', content: 'Disconnected. Attempting to reconnect...' });
+            setTimeout(connectWebSocket, 3000); // Reconnect after 3 seconds
         };
 
         socket.onerror = function(error) {
-            console.error(`Mobile Messaging Test App: [WebSocket Error] ${error.message}`);
-            appendMessage({ type: 'system_notification', content: 'A connection error occurred.' });
+            console.error(`Mobile App: [WebSocket Error] ${error.message}`);
+            appendMessage({ type: 'system', content: 'A connection error occurred.' });
         };
     }
-    connectWebSocket();
 
-    // Messaging UI Interaction
-    messageButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            if (!currentAnimal) {
-                console.warn("Mobile Messaging Test App: No animal selected, cannot send message.");
-                appendMessage({ type: 'system_notification', content: 'Please select an animal first.' });
-                return;
-            }
-            if (socket.readyState !== WebSocket.OPEN) {
-                console.warn("Mobile Messaging Test App: WebSocket not open, cannot send message.");
-                appendMessage({ type: 'system_notification', content: 'Connection lost. Please wait...' });
-                return;
-            }
-
-            const key = button.getAttribute('data-key');
-            const text = button.textContent; // Get text from button
-
-            const message = {
-                type: 'user_message',
-                animal: currentAnimal,
-                content: text,
-                content_key: key
-            };
-            console.log(`Mobile Messaging Test App: Sending message: ${JSON.stringify(message)}`);
-            socket.send(JSON.stringify(message));
-            appendMessage(message); // Display user's own message immediately
-        });
-    });
-
-    function appendMessage(message) {
+    // 4. Append messages to the chat log
+    function appendMessage(msg, isHistory = false) {
         const messageElement = document.createElement('div');
-        messageElement.classList.add('chat-message-mobile', `${message.type}`);
         
-        let content = '';
-        if (message.type === 'user_message') {
-            content = `<strong>You:</strong> ${message.content}`;
-        } else if (message.type === 'animal_response') {
-            content = `<strong>${message.animal.charAt(0).toUpperCase() + message.animal.slice(1)}:</strong> ${message.content}`;
+        // Determine message type for styling
+        if (msg.type === 'system') {
+            messageElement.classList.add('chat-message-mobile', 'system_notification');
+            messageElement.innerHTML = `<em>${msg.content}</em>`;
         } else {
-            content = `<em>${message.content}</em>`;
+            // It's a user message (either from history or new)
+            const msgUsername = msg.username || 'Unknown';
+            const msgContent = msg.message || msg.content || '';
+            
+            messageElement.classList.add('chat-message-mobile');
+            if (msgUsername === username && !isHistory) {
+                messageElement.classList.add('user_message'); // Current user's new message
+            } else {
+                messageElement.classList.add('other_message'); // Other users' messages
+            }
+            messageElement.innerHTML = `<strong>${msgUsername}:</strong> ${msgContent}`;
         }
 
-        messageElement.innerHTML = content;
         mobileChatLog.appendChild(messageElement);
-        mobileChatLog.scrollTop = mobileChatLog.scrollHeight; // Auto-scroll to the latest message
-        console.log(`Mobile Messaging Test App: Appended message to chat log: ${message.type} - ${message.content}`);
+        mobileChatLog.scrollTop = mobileChatLog.scrollHeight; // Auto-scroll
     }
 });

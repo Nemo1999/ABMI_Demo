@@ -1,9 +1,11 @@
 import asyncio
+import json
+import logging
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-import json
-import logging
+
+import database as db
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -13,27 +15,103 @@ app = FastAPI()
 # Serve static files (CSS, JS, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# In-memory storage for active connections
+# --- WebSocket Connection Manager ---
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: dict[str, list[WebSocket]] = {}
-        logging.info("ConnectionManager initialized.")
+        self.active_connections: list[WebSocket] = []
+        logging.info("Global ConnectionManager initialized.")
 
-    async def connect(self, websocket: WebSocket, session_id: str):
+    async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        if session_id not in self.active_connections:
-            self.active_connections[session_id] = []
-            logging.info(f"New session_id '{session_id}' created.")
-        self.active_connections[session_id].append(websocket)
-        logging.info(f"WebSocket connected for session '{session_id}'. Total connections for session: {len(self.active_connections[session_id])}")
+        self.active_connections.append(websocket)
+        logging.info(f"New WebSocket connected. Total connections: {len(self.active_connections)}")
 
-    def disconnect(self, websocket: WebSocket, session_id: str):
-        if session_id in self.active_connections:
-            self.active_connections[session_id].remove(websocket)
-            logging.info(f"WebSocket disconnected for session '{session_id}'. Remaining connections for session: {len(self.active_connections[session_id])}")
-            if not self.active_connections[session_id]:
-                del self.active_connections[session_id]
-                logging.info(f"Session '{session_id}' is now empty and removed.")
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+        logging.info(f"WebSocket disconnected. Remaining connections: {len(self.active_connections)}")
+
+    async def broadcast(self, message: str):
+        logging.info(f"Broadcasting message to all {len(self.active_connections)} clients: {message}")
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logging.error(f"Error sending message to a WebSocket: {e}")
+
+manager = ConnectionManager()
+
+# --- FastAPI Events ---
+@app.on_event("startup")
+async def startup_event():
+    """Initialize the database on application startup."""
+    logging.info("Application starting up...")
+    await db.init_db()
+
+# --- HTML Routes ---
+@app.get("/")
+async def get_display():
+    logging.info("GET / - Serving display.html")
+    with open("templates/display.html") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
+
+@app.get("/mobile")
+async def get_mobile():
+    logging.info("GET /mobile - Serving mobile.html")
+    with open("templates/mobile.html") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
+
+# --- WebSocket Endpoint ---
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    
+    # Send chat history to the newly connected client
+    try:
+        history = await db.get_all_messages()
+        history_message = {
+            "type": "history",
+            "data": history
+        }
+        await websocket.send_text(json.dumps(history_message))
+        logging.info("Sent chat history to new client.")
+    except Exception as e:
+        logging.error(f"Error sending chat history: {e}")
+
+    # Listen for new messages
+    try:
+        while True:
+            data = await websocket.receive_text()
+            logging.info(f"Received raw data: {data}")
+            
+            try:
+                message_data = json.loads(data)
+                username = message_data.get("username")
+                message_text = message_data.get("message")
+
+                if username and message_text:
+                    # Save the new message to the database
+                    await db.add_message(username, message_text)
+                    
+                    # Broadcast the new message to all clients
+                    new_message = {
+                        "type": "new_message",
+                        "username": username,
+                        "message": message_text
+                    }
+                    await manager.broadcast(json.dumps(new_message))
+                else:
+                    logging.warning(f"Received incomplete message: {data}")
+
+            except json.JSONDecodeError:
+                logging.error(f"Received invalid JSON: {data}")
+
+    except WebSocketDisconnect:
+        logging.info("WebSocket disconnected.")
+    except Exception as e:
+        logging.error(f"An unexpected error occurred in WebSocket: {e}")
+    finally:
+        manager.disconnect(websocket)
+        logging.info("Session '{session_id}' is now empty and removed.")
 
     async def broadcast(self, message: str, session_id: str):
         if session_id in self.active_connections:

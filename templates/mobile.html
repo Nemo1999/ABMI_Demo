@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AMID - Mobile Messaging Test</title>
+    <title>AMID - Chat</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body style="margin: 0; overflow: hidden;">
 
-    <div id="messaging-ui" class="messaging-ui-overlay" style="display: flex;"> <!-- Display flex by default -->
-        <div class="animal-selector">
-            <label for="select-animal">Talk to:</label>
-            <select id="select-animal">
-                <option value="elephant">Elephant</option>
-                <option value="lizard">Lizard</option>
-            </select>
+    <!-- Username Prompt Overlay -->
+    <div id="username-prompt" class="username-prompt-overlay">
+        <div class="username-prompt-box">
+            <h1>Enter Your Name</h1>
+            <input type="text" id="username-input" placeholder="Your name..." autofocus>
+            <button id="join-chat-btn">Join Chat</button>
         </div>
-        <div id="animal-name"></div>
+    </div>
+
+    <!-- Main Messaging UI (Initially Hidden) -->
+    <div id="messaging-ui" class="messaging-ui-overlay" style="display: none;">
         <div id="mobile-chat-log" class="mobile-chat-log"></div>
-        <div class="message-options">
-            <button class="msg-btn" data-key="hello">Hello</button>
-            <button class="msg-btn" data-key="food">Food?</button>
-            <button class="msg-btn" data-key="fun_fact">Fun Fact</button>
+        <div class="message-input-area">
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button id="send-btn">Send</button>
         </div>
     </div>
 

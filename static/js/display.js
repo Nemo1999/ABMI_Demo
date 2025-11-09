@@ -2,77 +2,78 @@ document.addEventListener('DOMContentLoaded', (event) => {
     console.log("Display App: DOM Content Loaded.");
 
     const chatLog = document.getElementById('chat-log');
-    const qrCodeContainer = document.getElementById('qrcode');
+    const bird = document.getElementById('bird');
 
-    // 1. Generate a unique session ID
-    const sessionId = 'session-' + Date.now() + Math.random().toString(36).substring(2, 8);
-    console.log(`Display App: Generated session ID: ${sessionId}`);
+    // 1. Bird Animation
+    let isBird1 = true;
+    setInterval(() => {
+        isBird1 = !isBird1;
+        bird.src = isBird1 ? '/static/assets/Bird1.PNG' : '/static/assets/Bird2.PNG';
+    }, 500); // Flip image every 500ms
 
-    // 2. Create the mobile URL with the session ID
-    const mobileUrl = `${window.location.protocol}//${window.location.host}/mobile?session_id=${sessionId}`;
-    console.log(`Display App: Constructed mobile URL: ${mobileUrl}`);
+    // 2. Establish WebSocket connection
+    function connectWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+        console.log(`Display App: Attempting to connect WebSocket to: ${wsUrl}`);
+        const socket = new WebSocket(wsUrl);
 
-    // 3. Generate the QR code
-    console.log("Display App: Generating QR code...");
-    new QRCode(qrCodeContainer, {
-        text: mobileUrl,
-        width: 256,
-        height: 256,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
-    });
-    qrCodeContainer.title = ''; // Remove the default title from the library
-    console.log("Display App: QR code generated.");
+        socket.onopen = function(e) {
+            console.log("Display App: [WebSocket Open] Connection established.");
+            appendMessage({ type: 'system', content: 'Listening for messages...' });
+        };
 
-    // 4. Establish the WebSocket connection
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/${sessionId}`;
-    console.log(`Display App: Attempting to connect WebSocket to: ${wsUrl}`);
-    const socket = new WebSocket(wsUrl);
+        // 3. Listen for incoming messages
+        socket.onmessage = function(event) {
+            console.log(`Display App: [WebSocket Message] Data received: ${event.data}`);
+            const serverMessage = JSON.parse(event.data);
 
-    socket.onopen = function(e) {
-        console.log("Display App: [WebSocket Open] Connection established.");
-        appendMessage({ type: 'system_notification', content: 'Waiting for user to scan QR code...' });
-    };
+            if (serverMessage.type === 'history') {
+                chatLog.innerHTML = ''; // Clear the log
+                appendMessage({ type: 'system', content: 'Chat history loaded.' });
+                serverMessage.data.forEach(msg => appendMessage(msg));
+            } else if (serverMessage.type === 'new_message') {
+                appendMessage(serverMessage);
+            }
+        };
 
-    // 5. Listen for incoming messages
-    socket.onmessage = function(event) {
-        console.log(`Display App: [WebSocket Message] Data received from server: ${event.data}`);
-        const message = JSON.parse(event.data);
-        appendMessage(message);
-    };
+        socket.onclose = function(event) {
+            console.error('Display App: [WebSocket Close] Connection died. Reconnecting...');
+            appendMessage({ type: 'system', content: 'Connection closed. Reconnecting in 3s...' });
+            setTimeout(connectWebSocket, 3000);
+        };
 
-    socket.onclose = function(event) {
-        if (event.wasClean) {
-            console.log(`Display App: [WebSocket Close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
-        } else {
-            console.error('Display App: [WebSocket Close] Connection died.');
-        }
-        appendMessage({ type: 'system_notification', content: 'Connection closed.' });
-    };
-
-    socket.onerror = function(error) {
-        console.error(`Display App: [WebSocket Error] ${error.message}`);
-        appendMessage({ type: 'system_notification', content: 'An error occurred.' });
-    };
-
-    function appendMessage(message) {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('chat-message', `${message.type}`);
-        
-        let content = '';
-        if (message.type === 'user_message') {
-            content = `<strong>You:</strong> ${message.content}`;
-        } else if (message.type === 'animal_response') {
-            content = `<strong>${message.animal.charAt(0).toUpperCase() + message.animal.slice(1)}:</strong> ${message.content}`;
-        } else {
-            content = `<em>${message.content}</em>`;
-        }
-
-        messageElement.innerHTML = content;
-        chatLog.appendChild(messageElement);
-        chatLog.scrollTop = chatLog.scrollHeight; // Auto-scroll to the latest message
-        console.log(`Display App: Appended message to chat log: ${message.type} - ${message.content}`);
+        socket.onerror = function(error) {
+            console.error(`Display App: [WebSocket Error] ${error.message}`);
+            appendMessage({ type: 'system', content: 'An error occurred with the connection.' });
+        };
     }
+
+    // 4. Render messages as speech bubbles
+    function appendMessage(msg) {
+        const messageElement = document.createElement('div');
+        
+        if (msg.type === 'system') {
+            messageElement.classList.add('chat-message', 'system_notification');
+            messageElement.innerHTML = `<em>${msg.content}</em>`;
+        } else {
+            // It's a user message
+            messageElement.classList.add('chat-bubble');
+            
+            const username = msg.username || 'Unknown';
+            const content = msg.message || msg.content || '';
+
+            messageElement.innerHTML = `
+                <div class="username">${username}</div>
+                <div class="content">${content}</div>
+            `;
+        }
+
+        chatLog.appendChild(messageElement);
+        chatLog.scrollTop = chatLog.scrollHeight; // Auto-scroll
+        console.log(`Display App: Appended message to chat log.`);
+    }
+
+    // Initial connection
+    connectWebSocket();
 });

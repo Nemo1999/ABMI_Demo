@@ -3,30 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMID - Display</title>
+    <title>ABMI - Bird Chat Room</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container">
+    <div id="app-container">
         <header>
-            <h1>Animal Messaging Interactive Demo</h1>
-            <p>Scan an animal with your phone to begin!</p>
+            <h1>Bird Chat Room</h1>
+            <p>Watch the conversation unfold!</p>
         </header>
 
-        <main class="display-main">
-            <div class="animal-display">
-                <img src="/static/assets/elephant-elefante.gif" alt="Elephant Animation">
-                <img src="/static/assets/lizard-butiki.gif" alt="Lizard Animation">
-            </div>
+        <div id="bird-container">
+            <img id="bird" src="/static/assets/Bird1.PNG" alt="Flying Bird">
+        </div>
 
-            <div class="chat-and-qr">
-                <div id="qrcode"></div>
-                <div id="chat-log"></div>
+        <main id="chat-container">
+            <div id="chat-log">
+                <!-- Messages will be injected here by JavaScript -->
             </div>
         </main>
     </div>
 
-    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <script src="/static/js/display.js"></script>
 </body>
 </html>
