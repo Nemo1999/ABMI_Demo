@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 import database as db
+from ai import generate_ai_response
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -89,16 +90,33 @@ async def websocket_endpoint(websocket: WebSocket):
                 message_text = message_data.get("message")
 
                 if username and message_text:
-                    # Save the new message to the database
+                    # 1. Save user message
                     await db.add_message(username, message_text)
                     
-                    # Broadcast the new message to all clients
-                    new_message = {
+                    # 2. Broadcast user message
+                    user_message_broadcast = {
                         "type": "new_message",
                         "username": username,
                         "message": message_text
                     }
-                    await manager.broadcast(json.dumps(new_message))
+                    await manager.broadcast(json.dumps(user_message_broadcast))
+                    
+                    # 3. Get history and generate AI response
+                    history = await db.get_all_messages()
+                    ai_response_text = generate_ai_response(history)
+                    
+                    # 4. Save AI response
+                    await db.add_message("藍鵲", ai_response_text)
+                    
+                    # 5. Broadcast AI response
+                    ai_message_broadcast = {
+                        "type": "new_message",
+                        "username": "藍鵲",
+                        "message": ai_response_text
+                    }
+                    await asyncio.sleep(0.5) # Dramatic pause
+                    await manager.broadcast(json.dumps(ai_message_broadcast))
+
                 else:
                     logging.warning(f"Received incomplete message: {data}")
 
@@ -111,83 +129,4 @@ async def websocket_endpoint(websocket: WebSocket):
         logging.error(f"An unexpected error occurred in WebSocket: {e}")
     finally:
         manager.disconnect(websocket)
-        logging.info("Session '{session_id}' is now empty and removed.")
-
-    async def broadcast(self, message: str, session_id: str):
-        if session_id in self.active_connections:
-            logging.info(f"Broadcasting message to session '{session_id}': {message}")
-            for connection in self.active_connections[session_id]:
-                try:
-                    await connection.send_text(message)
-                except RuntimeError as e:
-                    logging.error(f"Error sending message to WebSocket in session '{session_id}': {e}")
-        else:
-            logging.warning(f"Attempted to broadcast to non-existent session '{session_id}'.")
-
-manager = ConnectionManager()
-
-# Pre-defined animal responses
-animal_responses = {
-    "elephant": {
-        "hello": "The elephant raises its trunk and lets out a friendly trumpet!",
-        "food": "The elephant enjoys munching on leaves and branches.",
-        "fun_fact": "Elephants can communicate over long distances using low-frequency sounds!"
-    },
-    "lizard": {
-        "hello": "The lizard flicks its tongue and curiously tilts its head.",
-        "food": "This lizard loves to eat insects and small bugs.",
-        "fun_fact": "Some lizards can detach their tails to escape from predators!"
-    }
-}
-
-@app.get("/")
-async def get_display():
-    logging.info("GET / - Serving display.html")
-    with open("templates/display.html") as f:
-        return HTMLResponse(content=f.read(), status_code=200)
-
-@app.get("/mobile")
-async def get_mobile():
-    logging.info("GET /mobile - Serving mobile.html")
-    with open("templates/mobile.html") as f:
-        return HTMLResponse(content=f.read(), status_code=200)
-
-@app.websocket("/ws/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str):
-    logging.info(f"Attempting to connect WebSocket for session '{session_id}'.")
-    await manager.connect(websocket, session_id)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            logging.info(f"Received raw data from session '{session_id}': {data}")
-            message = json.loads(data)
-            logging.info(f"Parsed message from session '{session_id}': {message}")
-            
-            # Broadcast the user's message
-            await manager.broadcast(json.dumps(message), session_id)
-
-            # Generate and broadcast the animal's response
-            if message["type"] == "user_message":
-                animal = message.get("animal")
-                content_key = message.get("content_key") # e.g., "hello", "food"
-                logging.info(f"Processing user_message for animal '{animal}' with key '{content_key}'.")
-                if animal in animal_responses and content_key in animal_responses[animal]:
-                    response_text = animal_responses[animal][content_key]
-                    response_message = {
-                        "type": "animal_response",
-                        "animal": animal,
-                        "content": response_text
-                    }
-                    logging.info(f"Generated animal response for '{animal}': {response_text}")
-                    await asyncio.sleep(0.5) # Dramatic pause
-                    await manager.broadcast(json.dumps(response_message), session_id)
-                else:
-                    logging.warning(f"No response found for animal '{animal}' or content_key '{content_key}'.")
-
-    except WebSocketDisconnect:
-        logging.info(f"WebSocket disconnected from session '{session_id}'.")
-        manager.disconnect(websocket, session_id)
-    except json.JSONDecodeError:
-        logging.error(f"Received invalid JSON from session '{session_id}': {data}")
-    except Exception as e:
-        logging.error(f"An unexpected error occurred in WebSocket for session '{session_id}': {e}")
+        logging.info("A WebSocket session was closed.")

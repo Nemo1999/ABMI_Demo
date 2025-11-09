@@ -8,6 +8,7 @@ dependencies = [
     "uvicorn==0.38.0",
     "aiosqlite==0.20.0",
     "websockets==15.0.1",
+    "google-genai",
 ]
 
 tool.uv.package = false

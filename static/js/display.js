@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     console.log("Display App: QR code generated.");
 
 
-    // 4. Render messages as speech bubbles
+    // 5. Render messages as speech bubbles
     function appendMessage(msg) {
         const messageElement = document.createElement('div');
         
@@ -78,6 +78,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
             
             const username = msg.username || 'Unknown';
             const content = msg.message || msg.content || '';
+
+            if(username === "藍鵲"){
+                messageElement.classList.add('bird-message');
+            }
+            else{
+                messageElement.classList.add('user-message')
+            }
 
             messageElement.innerHTML = `
                 <div class="username">${username}</div>

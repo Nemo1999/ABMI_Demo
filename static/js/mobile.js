@@ -114,7 +114,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
             messageElement.classList.add('chat-message-mobile');
             if (msgUsername === username && !isHistory) {
                 messageElement.classList.add('user_message'); // Current user's new message
-            } else {
+            }else if(msgUsername === "藍鵲"){
+                messageElement.classList.add('bird_message')
+            }
+            else {
                 messageElement.classList.add('other_message'); // Other users' messages
             }
             messageElement.innerHTML = `<strong>${msgUsername}:</strong> ${msgContent}`;

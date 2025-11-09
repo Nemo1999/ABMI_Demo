@@ -98,11 +98,13 @@ h3 {
 
 .user-message {
     align-self: flex-start;
+    font-size: 1.85em;
 }
 
 .bird-message {
     align-self: flex-end;
-    background: #005566; /* Different color for the bird's message */
+    background: #006400; /* Different color for the bird's message */
+    font-size: 1.85em;
 }
 
 @keyframes fadeIn {
@@ -314,6 +316,12 @@ h3 {
     color: white;
     align-self: flex-start;
 }
+.chat-message-mobile.bird_message {
+    background: #006400; /* Different color for the bird's message */
+    color: white;
+    align-self: flex-start;
+}
+
 
 .chat-message-mobile.system_notification {
     font-style: italic;
