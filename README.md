@@ -1,213 +1,93 @@
-# Animal Messaging Interactive Demo (AMID)
+# ABMI Bird Chat Room
 
-This project is an interactive messaging experience designed for a public demo setting. It allows users to "talk" to virtual animals displayed on a large screen by using an AR-enabled web application on their smartphones.
+## Project Description
 
-The experience consists of two primary frontends and one backend:
+This project is a real-time, interactive web application that displays a chat room. Messages sent from a mobile client are displayed on a main screen as speech bubbles next to an animated bird. The application uses WebSockets for instant communication and stores chat history in a local SQLite database.
 
-1.  **Display App:** A website intended for a large screen (like a TV or projector). It displays animated animal pictures and a QR code. When a user starts a conversation, this screen shows the dialogue in real-time.
-2.  **Mobile AR App:** A mobile-first website that users access by scanning the QR code. It uses the phone's camera to provide an Augmented Reality experience. When the user points their phone at an animal on the large screen, messaging options appear, allowing them to initiate and continue a conversation.
-3.  **Backend Server:** The central hub that connects the Display and Mobile apps. It manages the real-time chat connection and serves all the web content.
+## Features
 
-## Architecture and Technical Design
+- **Real-time Chat**: A global chat room where messages are broadcast to all connected clients instantly.
+- **Persistent History**: Chat history is saved in an SQLite database and loaded for every new client.
+- **Animated Display**: The main display screen features a flying bird animation.
+- **Comic-Style UI**: Chat messages are rendered as speech bubbles for a fun, visual experience.
+- **Simple Mobile Client**: A straightforward mobile web page allows users to join the chat and send messages.
 
-The entire system is designed to run on a single server (e.g., an Amazon EC2 instance) and uses a modern, lightweight technology stack.
+## Technology Stack & Key Functions
 
-### Technology Stack
+This project uses a modern, lightweight technology stack. Below is an overview of the key components and the functions they provide.
 
-*   **Backend:** **Python 3** with the **FastAPI** framework.
-    *   **Server:** `uvicorn`
-    *   **Real-time Communication:** `websockets`
-*   **Display Frontend:** Plain **HTML5**, **CSS3**, and **JavaScript**.
-    *   **QR Code Generation:** A client-side JavaScript library.
-*   **Mobile AR Frontend:** **AR.js** built on **A-Frame** and **three.js**.
-*   **Deployment:** A single server instance where the FastAPI application runs and serves all content.
+### Backend
 
-### API and Communication Flow
+- **Python**: The core programming language for the server-side logic.
+- **FastAPI**: A high-performance Python web framework used for building the API and WebSocket endpoint.
+  - `uvicorn`: The ASGI server that runs the FastAPI application.
+  - **Key Function**: `@app.websocket("/ws")` is the decorator that establishes the main WebSocket endpoint. This single endpoint manages all real-time communication for the global chat room.
+- **aiosqlite**: An asynchronous library for interacting with the SQLite database, which integrates perfectly with FastAPI's async nature.
+  - **Key Functions**:
+    - `init_db()`: Creates the `chat_history.db` file and the `messages` table on application startup.
+    - `add_message()`: Inserts a new message into the database.
+    - `get_all_messages()`: Retrieves the entire chat history to send to new clients.
+- **WebSockets**: The protocol enabling two-way, real-time communication between the server and all connected clients.
 
-Communication between the server, the display, and the mobile client is handled in real-time via **WebSockets**.
+### Frontend
 
-**1. Session Initiation:**
+- **Vanilla HTML/CSS/JavaScript**: The frontend is built without any heavy frameworks to keep it simple and fast.
+- **Key JavaScript Functions**:
+  - `new WebSocket()`: The standard browser API used by clients to connect to the server's `/ws` endpoint.
+  - `socket.onmessage`: The event handler that processes messages received from the server. It listens for `history` messages to render the past chat, and `new_message` events to display live messages.
+  - `socket.send()`: The function used to send a user's message (as a JSON string) to the server.
+  - `setInterval()`: A simple but effective function used on the display page to create the bird's flapping animation by toggling the image source every 500ms.
 
-*   The Display App loads and generates a unique `session_id`.
-*   It creates a URL for the mobile app containing this ID: `https://<your-domain>/mobile?session_id=<unique_id>`.
-*   This URL is rendered as a QR code on the display.
-*   The Display App connects to the backend WebSocket endpoint: `wss://<your-domain>/ws/<unique_id>`.
+## Project Structure
 
-**2. Mobile Client Connection:**
-
-*   A user scans the QR code, opening the Mobile AR App.
-*   The mobile app reads the `session_id` from the URL.
-*   It connects to the same WebSocket endpoint: `wss://<your-domain>/ws/<unique_id>`.
-*   The server now has both the display and the mobile client linked in the same session.
-
-**3. WebSocket API Endpoint:**
-
-*   **Endpoint:** `/ws/{session_id}`
-*   **Protocol:** WebSocket (WSS)
-*   **Function:** Manages all real-time communication for a given session. The server maintains a "room" for each `session_id`, broadcasting incoming messages to all participants in that room.
-
-**4. WebSocket Message Format:**
-
-All messages sent over the WebSocket connection use a simple JSON structure:
-
-```json
-{
-  "type": "user_message" | "animal_response" | "system_notification",
-  "animal": "elephant" | "lizard" | "none",
-  "content": "The message text."
-}
+```
+/
+├── pyproject.toml       # Defines dependencies and scripts for the uv workflow
+├── main.py              # Main FastAPI application, handles WebSockets
+├── database.py          # Manages all SQLite database operations
+├── templates/
+│   ├── display.html     # The main screen with the bird and chat bubbles
+│   └── mobile.html      # The mobile client for sending messages
+└── static/
+    ├── css/style.css    # Styles for both display and mobile pages
+    ├── js/
+    │   ├── display.js   # Logic for the display page (animation, receiving messages)
+    │   └── mobile.js    # Logic for the mobile client (username prompt, sending messages)
+    └── assets/
+        ├── Background.JPG # The background image
+        ├── Bird1.PNG      # Bird animation frame 1
+        └── Bird2.PNG      # Bird animation frame 2
 ```
 
-*   `type`: Defines the nature of the message.
-    *   `user_message`: A message sent from the mobile client.
-    *   `animal_response`: A reply generated by the server on behalf of the animal.
-    *   `system_notification`: A status message (e.g., "User has connected.").
-*   `animal`: The animal being interacted with.
-*   `content`: The text of the message.
+## Setup and Running the Application
 
-### Detailed Interaction Sequence
-
-This section outlines the step-by-step flow of interactions between the User, the Display App, the Mobile AR App, and the Backend Server.
-
-1.  **User** opens **Display App** URL (`http://<EC2_IP>:8000/`) in a large screen browser.
-2.  **Display App** loads `display.html` and associated static assets (CSS, JS).
-3.  **Display App** (JavaScript) generates a unique `session_id`.
-4.  **Display App** (JavaScript) constructs the `mobile_url` (e.g., `http://<EC2_IP>:8000/mobile?session_id=<ID>`).
-5.  **Display App** (JavaScript) generates and displays a QR code containing the `mobile_url`.
-6.  **Display App** (JavaScript) initiates a WebSocket connection to the **Backend Server**: `WSS <EC2_IP>:8000/ws/<session_id>`.
-7.  **Backend Server** accepts the WebSocket connection from the **Display App** and registers it in the `session_id` room.
-8.  **User** scans the QR code with their smartphone.
-9.  **Mobile AR App** loads `mobile.html` from the `mobile_url` and associated static assets (CSS, JS, A-Frame, AR.js).
-10. **Mobile AR App** (JavaScript) extracts the `session_id` from the URL query parameters.
-11. **Mobile AR App** (JavaScript) initiates a WebSocket connection to the **Backend Server**: `WSS <EC2_IP>:8000/ws/<session_id>`.
-12. **Backend Server** accepts the WebSocket connection from the **Mobile AR App** and registers it in the `session_id` room.
-13. **User** points their smartphone camera at an animal GIF (e.g., elephant) displayed on the large screen.
-14. **Mobile AR App** (AR.js) detects the corresponding animal marker (e.g., `patt.elephant`).
-15. **Mobile AR App** (AR.js) renders interactive buttons (e.g., "Hello", "Food?", "Fun Fact") as an AR overlay on the smartphone screen.
-16. **User** taps an interactive button (e.g., "Hello") on their smartphone.
-17. **Mobile AR App** (JavaScript) sends a `user_message` to the **Backend Server** via its WebSocket connection:
-    ```json
-    {
-      "type": "user_message",
-      "animal": "elephant",
-      "content": "Hello",
-      "content_key": "hello"
-    }
-    ```
-18. **Backend Server** receives the `user_message`.
-19. **Backend Server** broadcasts the received `user_message` to all active WebSocket connections in the `session_id` room (i.e., both the **Display App** and the **Mobile AR App**).
-20. **Display App** (JavaScript) receives the `user_message` via its WebSocket and appends it to its chat log.
-21. **Mobile AR App** (JavaScript) receives the `user_message` via its WebSocket and appends it to its mobile chat log.
-22. **Backend Server** processes the `user_message`, looking up a pre-defined `animal_response` based on the `animal` and `content_key`.
-23. **Backend Server** generates the `animal_response` (e.g., "The elephant raises its trunk and lets out a friendly trumpet!").
-24. **Backend Server** broadcasts the `animal_response` to all active WebSocket connections in the `session_id` room:
-    ```json
-    {
-      "type": "animal_response",
-      "animal": "elephant",
-      "content": "The elephant raises its trunk and lets out a friendly trumpet!"
-    }
-    ```
-25. **Display App** (JavaScript) receives the `animal_response` via its WebSocket and appends it to its chat log.
-26. **Mobile AR App** (JavaScript) receives the `animal_response` via its WebSocket and appends it to its mobile chat log.
-
-### Visual Sequence Diagram
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant DisplayApp as Display App
-    participant MobileApp as Mobile AR App
-    participant Backend as Backend Server
-
-    User->>DisplayApp: 1. Opens URL (http://<EC2_IP>:8000/)
-    DisplayApp->>DisplayApp: 2. Loads display.html, CSS, JS
-    DisplayApp->>DisplayApp: 3. Generates unique session_id
-    DisplayApp->>DisplayApp: 4. Constructs mobile_url (http://<EC2_IP>:8000/mobile?session_id=<ID>)
-    DisplayApp->>DisplayApp: 5. Generates & displays QR code for mobile_url
-    DisplayApp->>Backend: 6. Initiates WebSocket connection (WSS /ws/<session_id>)
-    Backend->>Backend: 7. Accepts WS connection, registers DisplayApp in session_id room
-
-    User->>MobileApp: 8. Scans QR code
-    MobileApp->>MobileApp: 9. Loads mobile.html, CSS, JS, A-Frame, AR.js
-    MobileApp->>MobileApp: 10. Extracts session_id from URL
-    MobileApp->>Backend: 11. Initiates WebSocket connection (WSS /ws/<session_id>)
-    Backend->>Backend: 12. Accepts WS connection, registers MobileApp in session_id room
-
-    User->>MobileApp: 13. Points camera at animal GIF
-    MobileApp->>MobileApp: 14. AR.js detects animal marker (e.g., patt.elephant)
-    MobileApp->>MobileApp: 15. Displays interactive buttons in AR overlay
-
-    User->>MobileApp: 16. Taps button (e.g., "Hello")
-    MobileApp->>Backend: 17. Sends user_message via WS
-    Note over MobileApp,Backend: {"type": "user_message", "animal": "elephant", "content": "Hello", "content_key": "hello"}
-
-    Backend->>Backend: 18. Receives user_message
-    Backend->>DisplayApp: 19. Broadcasts user_message to DisplayApp
-    Backend->>MobileApp: 19. Broadcasts user_message to MobileApp
-    DisplayApp->>DisplayApp: 20. Appends user_message to chat log
-    MobileApp->>MobileApp: 21. Appends user_message to mobile chat log
-
-    Backend->>Backend: 22. Processes user_message, looks up animal_response
-    Backend->>Backend: 23. Generates animal_response
-    Backend->>DisplayApp: 24. Broadcasts animal_response to DisplayApp
-    Backend->>MobileApp: 24. Broadcasts animal_response to MobileApp
-    Note over MobileApp,Backend: {"type": "animal_response", "animal": "elephant", "content": "The elephant trumpets!"}
-
-    DisplayApp->>DisplayApp: 25. Appends animal_response to chat log
-    MobileApp->>MobileApp: 26. Appends animal_response to mobile chat log
-```
-
-## Running the Project
-
-Follow these steps to get the project up and running:
+Follow these steps to get the project running locally.
 
 ### 1. Prerequisites
 
-*   **Python 3.8+** installed on your system.
-*   **uv** package manager installed (as you've already done).
+- **uv** (Python package installer, can be installed via `pip install uv`)
 
-### 2. Setup the Python Environment
+### 2. Install Dependencies
 
-1.  **Create a virtual environment:**
-    ```bash
-    python3 -m venv .venv
-    ```
-2.  **Activate the virtual environment:**
-    ```bash
-    source .venv/bin/activate
-    ```
-3.  **Install dependencies:**
-    ```bash
-    uv pip install -r requirements.txt
-    ```
-    (Note: `requirements.txt` was generated after initial dependency installation.)
+With the environment activated, `uv` will use the `pyproject.toml` file to install all necessary packages. The `-e .` flag installs the project in "editable" mode.
 
-### 3. Generate AR.js Marker Files
+```bash
+uv sync
+```
 
-For the Augmented Reality functionality to work, you need to generate marker pattern files (`.patt`) from the animal GIF images. These files tell AR.js what to look for.
+### 3. Run the Application
 
-1.  **Go to the AR.js Marker Training Tool:** [https://jeromeetienne.github.io/AR.js/three.js/examples/marker-training/examples/generator.html](https://jeromeetienne.github.io/AR.js/three.js/examples/marker-training/examples/generator.html)
-2.  **Prepare Images:** Take a clear screenshot of the first frame of `elephant-elefante.gif` and `lizard-butiki.gif`.
-3.  **Upload and Generate:** Upload each screenshot to the generator tool one by one. Download the generated `.patt` file for each image.
-4.  **Rename Files:** Rename the downloaded files to `patt.elephant` and `patt.lizard` respectively.
-5.  **Place Files:** Move these two `.patt` files into the project's `static/assets/` directory:
-    `/home/nemo/ABMI_Demo/static/assets/`
+This command executes the `start` script defined in `pyproject.toml`, which runs the Uvicorn server.
 
-### 4. Run the Application
+```bash
+uv run uvicorn main:app --host <host_name> --port <port>
+```
 
-1.  **Ensure your virtual environment is active** (from step 2.2).
-2.  **Start the FastAPI server:**
-    ```bash
-    uvicorn main:app --host 0.0.0.0 --port 8000
-    ```
-    This command will start the server, making it accessible on your EC2 instance's IP address on port 8000.
+### 4. Access the Application
 
-### 5. Access the Applications
+Once the server is running, you can access the two parts of the application:
 
-Once the server is running:
+- **Display View**: Open your web browser and navigate to **http://localhost:8000**
+- **Mobile Client**: Open another browser tab or use a mobile device on the same network and navigate to **http://localhost:8000/mobile**
 
-*   **Display App (Large Screen):** Open a web browser on your large screen device and navigate to `http://<Your-EC2-IP-Address>:8000/`.
-*   **Mobile AR App (Smartphone):** Use your smartphone's camera to scan the QR code displayed on the large screen. This will open the mobile AR experience in your phone's browser.
-
-Enjoy the interactive demo!
+Enter a username on the mobile client and start sending messages to see them appear on the display screen!

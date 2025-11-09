@@ -1,94 +1,132 @@
-# Certificate is saved at: /etc/letsencrypt/live/43-213-46-114.sslip.io/fullchain.pem
-# Key is saved at:         /etc/letsencrypt/live/43-213-46-114.sslip.io/privkey.pem
-# 43-213-46-114.sslip.io 
-
-
 import asyncio
+import json
+import logging
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-import json
-import logging
+
+import database as db
+from ai import generate_ai_response
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = FastAPI()
 
 # Serve static files (CSS, JS, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# In-memory storage for active connections
+# --- WebSocket Connection Manager ---
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: dict[str, list[WebSocket]] = {}
+        self.active_connections: list[WebSocket] = []
+        logging.info("Global ConnectionManager initialized.")
 
-    async def connect(self, websocket: WebSocket, session_id: str):
+    async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        if session_id not in self.active_connections:
-            self.active_connections[session_id] = []
-        self.active_connections[session_id].append(websocket)
+        self.active_connections.append(websocket)
+        logging.info(f"New WebSocket connected. Total connections: {len(self.active_connections)}")
 
-    def disconnect(self, websocket: WebSocket, session_id: str):
-        if session_id in self.active_connections:
-            self.active_connections[session_id].remove(websocket)
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+        logging.info(f"WebSocket disconnected. Remaining connections: {len(self.active_connections)}")
 
-    async def broadcast(self, message: str, session_id: str):
-        if session_id in self.active_connections:
-            for connection in self.active_connections[session_id]:
+    async def broadcast(self, message: str):
+        logging.info(f"Broadcasting message to all {len(self.active_connections)} clients: {message}")
+        for connection in self.active_connections:
+            try:
                 await connection.send_text(message)
+            except Exception as e:
+                logging.error(f"Error sending message to a WebSocket: {e}")
 
 manager = ConnectionManager()
 
-# Pre-defined animal responses
-animal_responses = {
-    "elephant": {
-        "hello": "The elephant raises its trunk and lets out a friendly trumpet!",
-        "food": "The elephant enjoys munching on leaves and branches.",
-        "fun_fact": "Elephants can communicate over long distances using low-frequency sounds!"
-    },
-    "lizard": {
-        "hello": "The lizard flicks its tongue and curiously tilts its head.",
-        "food": "This lizard loves to eat insects and small bugs.",
-        "fun_fact": "Some lizards can detach their tails to escape from predators!"
-    }
- }
+# --- FastAPI Events ---
+@app.on_event("startup")
+async def startup_event():
+    """Initialize the database on application startup."""
+    logging.info("Application starting up...")
+    await db.init_db()
 
+# --- HTML Routes ---
 @app.get("/")
 async def get_display():
+    logging.info("GET / - Serving display.html")
     with open("templates/display.html") as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
 @app.get("/mobile")
 async def get_mobile():
+    logging.info("GET /mobile - Serving mobile.html")
     with open("templates/mobile.html") as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
-@app.websocket("/ws/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str):
-    await manager.connect(websocket, session_id)
+# --- WebSocket Endpoint ---
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    
+    # Send chat history to the newly connected client
+    try:
+        history = await db.get_all_messages()
+        history_message = {
+            "type": "history",
+            "data": history
+        }
+        await websocket.send_text(json.dumps(history_message))
+        logging.info("Sent chat history to new client.")
+    except Exception as e:
+        logging.error(f"Error sending chat history: {e}")
+
+    # Listen for new messages
     try:
         while True:
             data = await websocket.receive_text()
-            message = json.loads(data)
+            logging.info(f"Received raw data: {data}")
             
-            # Broadcast the user's message
-            await manager.broadcast(json.dumps(message), session_id)
+            try:
+                message_data = json.loads(data)
+                username = message_data.get("username")
+                message_text = message_data.get("message")
 
-            # Generate and broadcast the animal's response
-            if message["type"] == "user_message":
-                animal = message.get("animal")
-                content_key = message.get("content_key") # e.g., "hello", "food"
-                logging.info(f"message received for {animal}: {message}")
-                if animal in animal_responses and content_key in animal_responses[animal]:
-                    response_text = animal_responses[animal][content_key]
-                    response_message = {
-                        "type": "animal_response",
-                        "animal": animal,
-                        "content": response_text
+                if username and message_text:
+                    # 1. Save user message
+                    await db.add_message(username, message_text)
+                    
+                    # 2. Broadcast user message
+                    user_message_broadcast = {
+                        "type": "new_message",
+                        "username": username,
+                        "message": message_text
+                    }
+                    await manager.broadcast(json.dumps(user_message_broadcast))
+                    
+                    # 3. Get history and generate AI response
+                    history = await db.get_all_messages()
+                    ai_response_text = generate_ai_response(history)
+                    
+                    # 4. Save AI response
+                    await db.add_message("藍鵲", ai_response_text)
+                    
+                    # 5. Broadcast AI response
+                    ai_message_broadcast = {
+                        "type": "new_message",
+                        "username": "藍鵲",
+                        "message": ai_response_text
                     }
                     await asyncio.sleep(0.5) # Dramatic pause
-                    await manager.broadcast(json.dumps(response_message), session_id)
+                    await manager.broadcast(json.dumps(ai_message_broadcast))
+
+                else:
+                    logging.warning(f"Received incomplete message: {data}")
+
+            except json.JSONDecodeError:
+                logging.error(f"Received invalid JSON: {data}")
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket, session_id)
-        # Optional: broadcast a disconnect message
-        # await manager.broadcast(f"Client left the chat", session_id)
-
+        logging.info("WebSocket disconnected.")
+    except Exception as e:
+        logging.error(f"An unexpected error occurred in WebSocket: {e}")
+    finally:
+        manager.disconnect(websocket)
+        logging.info("A WebSocket session was closed.")

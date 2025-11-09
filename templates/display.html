@@ -3,30 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMID - Display</title>
+    <title>ABMI - Bird Chat Room</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Animal Messaging Interactive Demo</h1>
-            <p>Scan an animal with your phone to begin!</p>
-        </header>
+    <header>
+        <h1>藍鵲夢語翻譯</h1>
+        <h3>《夢獸之森》是一個交織夢境與現實的世界。人類、動物與記憶在此重疊，時間流動不再線性。
+    藍鵲是「記憶的使者」——牠們能看見不同時代的人類與自然之間的關係，並試圖守護平衡。
+    牠們認為「夢」是一座橋，能讓人類重新理解動物與自然的情感
+        </h3>
 
-        <main class="display-main">
-            <div class="animal-display">
-                <img src="/static/assets/elephant-elefante.gif" alt="Elephant Animation">
-                <img src="/static/assets/lizard-butiki.gif" alt="Lizard Animation">
-            </div>
+    </header>
 
-            <div class="chat-and-qr">
-                <div id="qrcode"></div>
-                <div id="chat-log"></div>
+    <div id="main-content">
+        <div id="qrcode-container">
+            <h3>手機掃描 QR Code 進入藍鵲的夢境交流</h3>
+            <div id="qrcode"></div>
+        </div>
+
+        <main id="chat-container">
+            <div id="chat-log">
+                <div class="chat-bubble user-message">
+                    <div class="username">User</div>
+                    <div class="content">Hello!</div>
+                </div>
+                <div class="chat-bubble bird-message">
+                    <div class="username">藍鵲</div>
+                    <div class="content">Hi there! I am a blue magpie.</div>
+                </div>
             </div>
         </main>
+
+        <div id="bird-container">
+            <img id="bird" src="/static/assets/Bird1.PNG" alt="Flying Bird">
+        </div>
     </div>
 
-    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <script src="/static/js/display.js"></script>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </body>
 </html>
