@@ -13,55 +13,50 @@ body {
 
 /* --- Display Page Styles --- */
 
-#app-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 60%;
-    min-height: 90vh;
-    background: rgba(0, 0, 0, 0.2); /* Dark overlay for readability */
-    padding: 20px;
-    box-sizing: border-box;
-}
-
 header {
     text-align: center;
-    margin-bottom: 20px;
+    padding: 20px;
 }
 
 header h1 {
     color: #ffffff;
     font-size: 3em;
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+}
+
+h3 {
+    color: #ffffff;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
 }
 
-header p {
-    color: #ecf0f1;
-    font-size: 1.2em;
+#main-content {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
 }
 
-#bird-container {
-    position: relative;
-    top: 0%;
-    right: -10%;
-    width: 1000px; /* Adjust size as needed */
-    z-index: 10;
+#qrcode-container {
+    width: 15%;
+    text-align: center;
 }
 
-#bird {
-    width: 100%;
-    filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.5));
+#qrcode {
+    padding: 10px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    width: 260px;
+    height:260px;
+    aspect-ratio: 1 / 1;
 }
 
 #chat-container {
-    width: 90%;
-    max-width: 800px;
-    margin-top: 100px; /* Give space for bird */
+    width: 70%;
 }
 
 #chat-log {
     width: 100%;
-    height: 60vh;
+    height: 80vh;
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -70,19 +65,19 @@ header p {
     box-sizing: border-box;
 }
 
-#qrcode-container{
-    min-height: 10vh;
+#bird-container {
+    width: 15%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-#qrcode {
-    padding: 10px;
-    background: none;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    width: 260px;
-    height:260px;
+#bird {
+    width: 500%;
+    max-width: 1500px;
+    filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.8));
+    animation: float 10s ease-in-out infinite;
 }
-
 
 /* Hide scrollbar but allow scrolling */
 #chat-log::-webkit-scrollbar {
@@ -97,9 +92,17 @@ header p {
     padding: 12px 18px;
     border-radius: 20px;
     max-width: 60%;
-    align-self: flex-start;
     position: relative;
     animation: fadeIn 0.3s ease-in-out;
+}
+
+.user-message {
+    align-self: flex-start;
+}
+
+.bird-message {
+    align-self: flex-end;
+    background: #005566; /* Different color for the bird's message */
 }
 
 @keyframes fadeIn {
@@ -119,7 +122,7 @@ header p {
 }
 
 /* Speech bubble tail */
-.chat-bubble::after {
+.user-message::after {
     content: '';
     position: absolute;
     bottom: 0;
@@ -135,12 +138,46 @@ header p {
     transform: rotate(30deg);
 }
 
+.bird-message::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: -10px;
+    width: 0;
+    height: 0;
+    border: 15px solid transparent;
+    border-left-color: #7f8c8d;
+    border-right: 0;
+    border-bottom: 0;
+    margin-top: -10px;
+    margin-right: 5px;
+    transform: rotate(-30deg);
+}
+
 .system_notification {
     font-style: italic;
     color: #bdc3c7;
     align-self: center;
     font-size: 0.9em;
     text-align: center;
+}
+
+@keyframes float {
+    0% {
+        transform: translate(0, 0);
+    }
+    25% {
+        transform: translate(2vw, 3vh);
+    }
+    50% {
+        transform: translate(-2vw, -3vh);
+    }
+    75% {
+        transform: translate(3vw, -2vh);
+    }
+    100% {
+        transform: translate(0, 0);
+    }
 }
 
 
