@@ -169,6 +169,49 @@ graph LR
 
 最終，這個結合了「角色扮演指令」和「對話上下文」的完整 Prompt 會被送到 Gemini 模型，模型會根據這些資訊生成下一句藍鵲的回應。
 
+### 4. 總體架構圖 (Overall Architecture Diagram)
+
+此圖表使用 `architecture-beta` 類型，總結了整個專案的組件、技術和它們之間的互動關係。
+
+```mermaid
+---
+config:
+  theme: forest
+  look: neo
+  layout: dagre
+---
+flowchart TB
+ subgraph user_space["使用者空間 (User Space)"]
+        display["顯示螢幕<br>(Display: HTML / CSS / JS)"]
+        mobile["手機客戶端<br>(Mobile Client: HTML / CSS / JS)"]
+  end
+ subgraph backend_cloud["後端服務 (FastAPI on Uvicorn)"]
+        server["FastAPI 主應用<br>(Main Server)"]
+        websocket["WebSocket 端點<br>(/ws)"]
+        http_routes["HTTP 路由<br>(/, /mobile)"]
+        db["SQLite 資料庫<br>(aiosqlite)"]
+        ai_module["AI 模組 (ai.py)"]
+  end
+ subgraph external_services["外部 AI 服務 (External AI Services)"]
+        gemini["Google Gemini AI"]
+  end
+    server --> websocket & http_routes & db & ai_module
+    ai_module --> gemini
+    display --> server
+    mobile --> server
+
+```
+
+**架構說明：**
+- **使用者空間 (User Space)**：包含使用者直接互動的前端應用，由純 HTML/CSS/JS 構成。
+- **後端服務 (Backend Service)**：基於 Python 的 FastAPI 應用，運行在 Uvicorn ASGI 伺服器上。
+  - **FastAPI 主應用**：作為核心，內部包含處理 HTTP 請求和 WebSocket 通訊的邏輯。
+  - **SQLite 資料庫**：透過 `aiosqlite` 進行非同步存取，儲存所有對話。
+  - **AI 模組**：`ai.py` 檔案，負責與外部 Gemini API 溝通。
+- **外部 AI 服務 (External AI Service)**：我們使用 Google Gemini AI 來生成藍鵲的回應。
+
+這個架構圖清晰地展示了從使用者到後端服務，再到外部 AI 的完整流程，並標示了各個環節使用的關鍵技術。
+
 ## Setup and Running the Application
 
 Follow these steps to get the project running locally.
