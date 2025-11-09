@@ -83,11 +83,12 @@ This command executes the `start` script defined in `pyproject.toml`, which runs
 uv run uvicorn main:app --host <host_name> --port <port>
 ```
 
-### 4. Access the Application
+### 4. Access the Application (Demo)
 
 Once the server is running, you can access the two parts of the application:
 
-- **Display View**: Open your web browser and navigate to **http://localhost:8000**
-- **Mobile Client**: Open another browser tab or use a mobile device on the same network and navigate to **http://localhost:8000/mobile**
+- **Display View**: Open your web browser on computer (laptop or PC) and navigate to **[main display page](https://43-213-46-114.sslip.io/)**
+- **Mobile Client**: Open another browser tab or use a mobile device and scan the QR code on the previous display page
+
 
 Enter a username on the mobile client and start sending messages to see them appear on the display screen!
