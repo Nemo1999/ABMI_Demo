@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const msgContent = msg.message || msg.content || '';
             
             messageElement.classList.add('chat-message-mobile');
-            if (msgUsername === username && !isHistory) {
+            if (msgUsername === username ) {
                 messageElement.classList.add('user_message'); // Current user's new message
             }else if(msgUsername === "藍鵲"){
                 messageElement.classList.add('bird_message')
